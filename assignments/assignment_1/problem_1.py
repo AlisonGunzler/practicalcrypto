@@ -1,7 +1,8 @@
 # Python version 3.9 or later
 
 import os
-
+import timeit
+import pandas as pd
 
 # This is a helper function that returns the length of the input N in bytes.
 #
@@ -17,7 +18,7 @@ def num_rand_bytes(N):
 
 # Alice's random number generator
 def alice_rand_gen(N):
-    num_bytes = num_rand_bytes(N)
+    num_bytes = num_rand_bytes(N) #
 
     # Initialize with a sentinel so that at least one iteration of the loop is run.
     val = N + 1
@@ -44,3 +45,31 @@ def bob_rand_gen(N):
     val = int.from_bytes(random_bytes, "big") % (N + 1)
 
     return val
+
+
+def partone():
+    print(timeit.timeit(lambda: alice_rand_gen(255)))
+    print(timeit.timeit(lambda: bob_rand_gen(255)))
+
+def parttwo():
+    N = 103
+    dist_a = [0] * (N+1) # 0 to N
+    dist_b = [0] * (N+1) 
+    for i in range(1000000):
+        a_rand = alice_rand_gen(N)
+        b_rand = bob_rand_gen(N)
+        dist_a[a_rand] += 1
+        dist_b[b_rand] += 1
+
+    data = [dist_a, dist_b]
+
+    #plots
+    df = pd.DataFrame(data)
+    df.to_excel("output.xlsx", index=False, header=False)
+
+
+
+
+parttwo()
+
+
