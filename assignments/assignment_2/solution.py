@@ -39,41 +39,54 @@ def solve_padding_oracle(ctx, server):
     ct = bytearray(ctx)
     n = len(ct)
     num_padding = det_padding_count(ctx, server)
+    print(num_padding)
     M_byte_ind = n-num_padding-1
     pt = list()
 
-    while (n != num_padding) :
-        for i in range(num_padding) :
-            print("ok")
-            print(len(ct))
-            print(i)
-            print(n-i-1)
-            print(num_padding)
-            ct[n-i-1] = ct[n-i-1] ^ 1 #ADD 1??
+    while (M_byte_ind >= 0) :
+        
+        for i in range(1,num_padding+1) :
+            ct[-i] = (ct[-i]^num_padding)^(num_padding+1) #ADD 1??
+
+        # ct = f ^ n 
+        # ct ^ n ^ n+1 = f^n+1
+
         xorfac = 0
         for j in range(256) :
-            ct1 = bytearray(ct)
-            ct1[M_byte_ind] = ct1[M_byte_ind] ^ j
-            if(server(ct1) == 1) :
+            ct[M_byte_ind] = ct[M_byte_ind] ^ j
+            if(server(ct) == True) :
                 xorfac = j
-        ct[M_byte_ind] = ct[M_byte_ind] ^ xorfac
-        new_mbyte = xorfac ^ (num_padding ^ 1) #ADD 1??
+                break
+            ct[M_byte_ind] = ct[M_byte_ind] ^ j
+        
+        # pt ^ j = n+1 
+        # n+1 ^ j = pt 
+        
+        new_mbyte = ct[M_byte_ind]^ xorfac ^ (num_padding+1)
         pt.insert(0, new_mbyte)
+
+        # print(pt)
+        M_byte_ind -= 1
+        num_padding += 1
+        
         print(pt)
-        n = n+1
     return bytes(pt)
 
 
 def det_padding_count(ctx, server) :
+    #     1. getting padding
+#     - xor 2nd bit by 1, see if still valid
+#     - cont
     ct = bytearray(ctx)
     n = len(ct)
-    for i in range (0, 16) :
-        ct[n-1-i] = ct[n-1-i] ^ 1
-        if(server(ct) == 1) :
-            print(i)
-            return i
-        ct = bytearray(ctx)
-    return 0
+    print(n)
+
+    for i in range (2, 17) :
+        ct[-i] ^= 1
+        if(server(ct) == True) :
+            return i-1
+        ct[-i] ^= 1
+    return 12
 
 
 
@@ -93,7 +106,28 @@ def find_cookie_length(device):
     Returns:
         int: The length of the secret cookie (in bytes).
     """
-    return 0
+
+    msg = ""
+    msg = bytes(msg, encoding='utf-8')
+    cookie_len =0
+    out = device(msg)
+    num_blocks = len(out) // 16
+
+    for i in range(1, 256) :
+        msg = "a" * i
+        msg = bytes(msg, encoding='utf-8')
+        out = device(msg)
+        nnum_blocks = len(out) // 16
+        if(nnum_blocks != num_blocks) :
+            break
+    
+    no_padding = i
+    cookie_len = 16 - no_padding
+
+    cookie_len -= 8
+
+    return cookie_len
+
 
 
 def find_cookie(device):
@@ -111,4 +145,21 @@ def find_cookie(device):
     Returns:
         bytes: The secret cookie that was appended to the plaintext.
     """
+    clen = find_cookie_length(device)
+    msg = b""
+    out = device(msg)
+    bout = bytearray(out)
+    bin = bytearray(b";cookie=")
+    n = clen + len(bin)
+    padding = len(bout)-n 
+
+    #where to go from here?
+
+
+
+
+    
+
+
+
     return b""
