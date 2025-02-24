@@ -81,12 +81,12 @@ def det_padding_count(ctx, server) :
     n = len(ct)
     print(n)
 
-    for i in range (2, 17) :
+    for i in range (1, 17) :
         ct[-i] ^= 1
         if(server(ct) == True) :
             return i-1
         ct[-i] ^= 1
-    return 12
+    return 0
 
 
 
