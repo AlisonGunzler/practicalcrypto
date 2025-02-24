@@ -49,31 +49,45 @@ def solve_padding_oracle(ctx, server):
 
         pt_block = [0]*16
 
-        #set iv to 0
+        # set iv to 0
         iv = bytearray([0]*16)
+        # store decrypted ciphertext
+        cd = bytearray([0] * 16)
         
         #for each byte in the block
         for i in range(1,17) :
-            # padding should be i
+            # padding should be i 
+
+            # find iv value to get padding=i
             correct_iv = 0
-            for j in range(256) :
+
+            #for each possible byte
+            for j in range(0,256) :
+                #add j to iv
                 iv[-i] = j
                 concat_blocks = iv + cn
                 if(server(concat_blocks)) :
                     correct_iv = j
                     break
-            cd = i ^ correct_iv
-            pt_block[-i] = cd ^ ivo[-i]
+            cd[-i] = i ^ correct_iv
+            pt_block[-i] = cd[-i] ^ ivo[-i]
 
             #TODO logic to turn 1 to 2
+            for k in range(1,i+1) :
+                iv[-k] = cd[-k] ^ (i+1)
 
 
         num_blocks -= 1
         pt = pt_block + pt
         
-    characters = [chr(n) for n in pt]   
-    print(characters)
-    return 0
+    # characters = [chr(n) for n in pt]   
+    # print(characters)
+
+    #padding is last digit of plaintext
+    padding_ct = pt[-1]
+
+    #remove padding and return as bytes
+    return bytes(bytearray(pt[:-padding_ct]))
 
 
 
