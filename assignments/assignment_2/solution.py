@@ -109,26 +109,26 @@ def find_cookie_length(device):
         int: The length of the secret cookie (in bytes).
     """
 
-    msg = ""
-    msg = bytes(msg, encoding='utf-8')
-    cookie_len =0
-    out = device(msg)
-    num_blocks = len(out) // 16
+    base_case = b""
+    out_base_case = device(base_case)
+    blocks_base_case = len(out_base_case) // 16
 
-    for i in range(1, 256) :
-        msg = "a" * i
-        msg = bytes(msg, encoding='utf-8')
-        out = device(msg)
-        nnum_blocks = len(out) // 16
-        if(nnum_blocks != num_blocks) :
+    print(len(out_base_case))
+    print(blocks_base_case)
+
+    for i in range(256) :
+        case_str = "a" * i
+        case = case_str.encode()
+        out_case = device(case)
+        blocks_case = len(out_case) // 16
+        if(blocks_case != blocks_base_case) :
+            alen = i-1
             break
     
-    no_padding = i
-    cookie_len = 16 - no_padding
+    clen = blocks_base_case*16-8-alen
+    print(clen)
 
-    cookie_len -= 8
-
-    return cookie_len
+    return clen-1
 
 
 
