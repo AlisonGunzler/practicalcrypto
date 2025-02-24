@@ -29,64 +29,52 @@ def solve_padding_oracle(ctx, server):
     Returns:
         bytes: The recovered plaintext message with the padding removed.
     """
-#     1. getting padding
-#     - xor 2nd bit by 1, see if still valid
-#     - cont
-# - know 0E -> make 14 by add 1
-#     - change 1st M by i=0-255 until get 14
-#     - MM = 0E xor XX
-#     - repeat with next MM
+    # 1: take last 2 blocks
     ct = bytearray(ctx)
-    n = len(ct)
-    num_padding = det_padding_count(ctx, server)
-    print(num_padding)
-    M_byte_ind = n-num_padding-1
-    pt = list()
+    block_size = 16
+    num_blocks = len(ct) // 16
+    pt = []
 
-    while (M_byte_ind >= 0) :
+    while(num_blocks > 1) :
         
-        for i in range(1,num_padding+1) :
-            ct[-i] = (ct[-i]^num_padding)^(num_padding+1) #ADD 1??
+        #last block
+        cn_index = (num_blocks-1) * block_size
+        cn_index2 = num_blocks * block_size
+        cn = ct[cn_index:cn_index2]
 
-        # ct = f ^ n 
-        # ct ^ n ^ n+1 = f^n+1
+        #second to last block
+        iv_index = (num_blocks-2) * block_size
+        iv_index2 = (num_blocks-1) * block_size
+        ivo = ct[iv_index:iv_index2]
 
-        xorfac = 0
-        for j in range(256) :
-            ct[M_byte_ind] = ct[M_byte_ind] ^ j
-            if(server(ct) == True) :
-                xorfac = j
-                break
-            ct[M_byte_ind] = ct[M_byte_ind] ^ j
+        pt_block = [0]*16
+
+        #set iv to 0
+        iv = bytearray([0]*16)
         
-        # pt ^ j = n+1 
-        # n+1 ^ j = pt 
+        #for each byte in the block
+        for i in range(1,17) :
+            # padding should be i
+            correct_iv = 0
+            for j in range(256) :
+                iv[-i] = j
+                concat_blocks = iv + cn
+                if(server(concat_blocks)) :
+                    correct_iv = j
+                    break
+            cd = i ^ correct_iv
+            pt_block[-i] = cd ^ ivo[-i]
+
+            #TODO logic to turn 1 to 2
+
+
+        num_blocks -= 1
+        pt = pt_block + pt
         
-        new_mbyte = ct[M_byte_ind]^ xorfac ^ (num_padding+1)
-        pt.insert(0, new_mbyte)
-
-        # print(pt)
-        M_byte_ind -= 1
-        num_padding += 1
-        
-        print(pt)
-    return bytes(pt)
-
-
-def det_padding_count(ctx, server) :
-    #     1. getting padding
-#     - xor 2nd bit by 1, see if still valid
-#     - cont
-    ct = bytearray(ctx)
-    n = len(ct)
-    print(n)
-
-    for i in range (1, 17) :
-        ct[-i] ^= 1
-        if(server(ct) == True) :
-            return i-1
-        ct[-i] ^= 1
+    characters = [chr(n) for n in pt]   
+    print(characters)
     return 0
+
 
 
 
