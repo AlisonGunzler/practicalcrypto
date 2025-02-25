@@ -126,7 +126,6 @@ def find_cookie_length(device):
             break
     
     clen = blocks_base_case*16-8-alen
-    print(clen)
 
     return clen-1
 
@@ -147,13 +146,78 @@ def find_cookie(device):
     Returns:
         bytes: The secret cookie that was appended to the plaintext.
     """
+    
     clen = find_cookie_length(device)
+    cookie = [0]*clen
+    
     msg = b""
     out = device(msg)
     bout = bytearray(out)
-    bin = bytearray(b";cookie=")
-    n = clen + len(bin)
-    padding = len(bout)-n 
+    
+    last_blk = bout[-16:]
+
+    msg_str = "0000000"
+    msg = msg_str.encode() ^ last_blk 
+    out = device(msg)
+    bout = bytearray(out)
+    last_blk = bout[-16:]   
+    correct = bout[0:16]   
+
+
+    for i in range(256) :
+        msg_str = "0000000" + ";cookie=" + i
+        msg = msg_str.encode() ^ last_blk 
+        out = device(msg)
+        bout = bytearray(out)
+        last_blk = bout[-16:]
+
+        if(bout[0:16] == correct):
+            cookie[0] = i
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    # iv pt 
+    # block of 0s
+    # 0s ;cookie= cookie
+
+
+    #using stateful version of cbc
+        #IV at end
+
+
+    
+
+    # know 
+        # msg
+        # cookie length
+        # padding length and value
+        # ciphertext
+    # need
+        # plaintext
+
+    # MMML CP
+
+
 
     #where to go from here?
 
@@ -164,4 +228,4 @@ def find_cookie(device):
 
 
 
-    return b""
+    return bytes(bytearray(pt[:-padding_ct]))
