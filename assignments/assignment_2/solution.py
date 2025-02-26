@@ -146,53 +146,50 @@ def find_cookie(device):
     Returns:
         bytes: The secret cookie that was appended to the plaintext.
     """
-    
+
     # 0. Initial conditions
     clen = find_cookie_length(device)
     cookie_str = ""
-
-    # 1. do arbitrary entry to get last_blk
+    # 1. Use arbitrary input to get a ciphertext. The last block (last_blk) will be the next iv
     msg = b""
     out = device(msg)
     bout = bytearray(out)
-    last_blk = bout[-16:] # this will be the next iv
-    
-    # 1.5. for k = 1-clen
-    for k in range(1,clen+1) :
-    # 2. msg_string = 8-k 0's, the rest will be filled with b";cookie=" + cookie(1 byte)
-        msg_str = "0"*(8-k) 
-        # msg = 0000000 (7) ;cookie= (8) + cookie(1b)
-        print(msg_str)
-        msg = msg_str.encode()
-        # 3. input to device msg_string, result will be aes(msg_string) ^ last_blk0
-        # msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
-        last_blk0 = last_blk
-        #TODO how to fix msg  = 7 bytes long -> halp me
-        out = device(msg)
+    last_blk0 = bout[-16:] # this will be the next iv # TODO last blk??
+   
+   
+    # 2. Append a set amount of zeros to get the next byte of the cookie into the first block. To get the first cookie byte, the message would be equal to  "0000000" and the device will add ";cookie=" and 1 byte of the cookie to the first block
+    msg = b"0000000"
+    # 3. I would then input the message into the device. The result will be the AES encryption of 0000000;cookie=n ^ last_blk with n being the first byte of the cookie. I will save this last_blk to a separate variable, last_blk0
+    out = device(msg)
+    bout = bytearray(out) # bout = 0000000;cookie=n ^ last_blk
+    correct = bout[0:16]
+    # print(correct)
+    last_blk = bout[-16:]
+
+    # print(len(correct))
+  
+  
+    # 4. I will then go from i= 0-256 and input msg = ("0000000" + ";cookie" + i)  ^ last_blk ^ last_blk0 to get the AES encryption of each possibility. 
+    for i in range(256) :
+        msg = b"0000000;cookie=" +  bytes([i])
+        # print(len(msg))
+        # print((msg))
+        blk_factor =  bytes(a ^ b for a, b in zip(last_blk, last_blk0))
+        input = bytes(a ^ b for a, b in zip(blk_factor, msg))
+        out = device(input)
         bout = bytearray(out)
-        last_blk = bout[-16:]   
-        correct = bout[:16]   # aes encoding of 0's + b";cookie=" + cookie
-        # 4. from i = 0-256, check every possible byte
-        for i in range(0,256) :
-            # 5. msg_str = "0"*(8-k) + ";cookie=" + cookie_str + str(i)
-            msg_str = "0"*(8-k) + ";cookie=" + cookie_str + str(i) # this is the guess, k= len(cookie_str), cookie_str = bytes figured out
-            # 6. input to device msg_string^last_blk, result will be aes(msg_string)
-            msg = msg_str.encode() 
-            msg = bytes([a ^ b ^ c for a, b, c in zip(msg, bytes(last_blk), bytes(last_blk0))])
-            out = device(msg)
-            bout = bytearray(out)
-            last_blk = bout[-16:]
-            # 7. compare result from 3 with result from 6, if they match, i is the next byte of cookie
-            if(bout[:16] == correct):
-                print("yess")
-                cookie_str = chr(i) + cookie_str
-                break
-            # 8. repeat until cookie is found
-        #TODO clen > 8, do m_str = 16 bytes??
+        last_blk = bout[-16:]
+        # print(bout[0:16])
+    # 5. If I compare the results of step 3 and step 4, I can determine the first cookie byte.
+        if(bout[0:16] == correct) :
+            print(i)
+            cookie_str = chr(i) + cookie_str
+            break
+
+
     print(cookie_str)
 
-    #NOTES
-    #using stateful version of cbc
-        #IV at end
 
-    return b""
+
+
+    return b''
