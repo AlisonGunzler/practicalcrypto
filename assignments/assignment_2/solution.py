@@ -147,85 +147,51 @@ def find_cookie(device):
         bytes: The secret cookie that was appended to the plaintext.
     """
     
+    # 0. Initial conditions
     clen = find_cookie_length(device)
-    cookie = [0]*clen
-    
+    cookie_str = ""
+
+    # 1. do arbitrary entry to get last_blk
     msg = b""
     out = device(msg)
     bout = bytearray(out)
+    last_blk = bout[-16:] # this will be the next iv
     
-    last_blk = bout[-16:]
-
-    msg_str = "0000000"
-    msg = msg_str.encode() ^ last_blk 
-    out = device(msg)
-    bout = bytearray(out)
-    last_blk = bout[-16:]   
-    correct = bout[0:16]   
-
-
-    for i in range(256) :
-        msg_str = "0000000" + ";cookie=" + i
-        msg = msg_str.encode() ^ last_blk 
+    # 1.5. for k = 1-clen
+    for k in range(1,clen+1) :
+    # 2. msg_string = 8-k 0's, the rest will be filled with b";cookie=" + cookie(1 byte)
+        msg_str = "0"*(8-k) 
+        # msg = 0000000 (7) ;cookie= (8) + cookie(1b)
+        print(msg_str)
+        msg = msg_str.encode()
+        # 3. input to device msg_string^last_blk, result will be aes(msg_string)
+        msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
+        #TODO how to fix msg  = 7 bytes long -> halp me
         out = device(msg)
         bout = bytearray(out)
-        last_blk = bout[-16:]
+        last_blk = bout[-16:]   
+        correct = bout[:16]   # aes encoding of 0's + b";cookie=" + cookie
+        # 4. from i = 0-256, check every possible byte
+        for i in range(0,256) :
+            # 5. msg_str = "0"*(8-k) + ";cookie=" + cookie_str + str(i)
+            msg_str = "0"*(8-k) + ";cookie=" + cookie_str + str(i) # this is the guess, k= len(cookie_str), cookie_str = bytes figured out
+            # 6. input to device msg_string^last_blk, result will be aes(msg_string)
+            msg = msg_str.encode() 
+            msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
+            out = device(msg)
+            bout = bytearray(out)
+            last_blk = bout[-16:]
+            # 7. compare result from 3 with result from 6, if they match, i is the next byte of cookie
+            if(bout[:16] == correct):
+                print("yess")
+                cookie_str = chr(i) + cookie_str
+                break
+            # 8. repeat until cookie is found
+        #TODO clen > 8, do m_str = 16 bytes??
+    print(cookie_str)
 
-        if(bout[0:16] == correct):
-            cookie[0] = i
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    # iv pt 
-    # block of 0s
-    # 0s ;cookie= cookie
-
-
+    #NOTES
     #using stateful version of cbc
         #IV at end
 
-
-    
-
-    # know 
-        # msg
-        # cookie length
-        # padding length and value
-        # ciphertext
-    # need
-        # plaintext
-
-    # MMML CP
-
-
-
-    #where to go from here?
-
-
-
-
-    
-
-
-
-    return bytes(bytearray(pt[:-padding_ct]))
+    return b""
