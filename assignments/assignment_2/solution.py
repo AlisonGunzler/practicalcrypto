@@ -164,8 +164,9 @@ def find_cookie(device):
         # msg = 0000000 (7) ;cookie= (8) + cookie(1b)
         print(msg_str)
         msg = msg_str.encode()
-        # 3. input to device msg_string^last_blk, result will be aes(msg_string)
-        msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
+        # 3. input to device msg_string, result will be aes(msg_string) ^ last_blk0
+        # msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
+        last_blk0 = last_blk
         #TODO how to fix msg  = 7 bytes long -> halp me
         out = device(msg)
         bout = bytearray(out)
@@ -177,7 +178,7 @@ def find_cookie(device):
             msg_str = "0"*(8-k) + ";cookie=" + cookie_str + str(i) # this is the guess, k= len(cookie_str), cookie_str = bytes figured out
             # 6. input to device msg_string^last_blk, result will be aes(msg_string)
             msg = msg_str.encode() 
-            msg = bytes([a ^ b for a, b in zip(msg, bytes(last_blk))])
+            msg = bytes([a ^ b ^ c for a, b, c in zip(msg, bytes(last_blk), bytes(last_blk0))])
             out = device(msg)
             bout = bytearray(out)
             last_blk = bout[-16:]
