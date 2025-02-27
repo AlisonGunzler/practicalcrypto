@@ -155,8 +155,16 @@ def find_cookie(device):
     out = device(msg)
     bout = bytearray(out)
     last_blk = bout[-16:] # this will be the next iv # TODO last blk??
-    
-    for n in range(clen % 16) :
+   
+    if(clen <= 8):
+        return caseA(last_blk, device, clen, cookie_str)
+    else :
+        return caseB(last_blk, device, clen, cookie_str)
+
+
+
+def caseA(last_blk, device, clen, cookie_str) :
+    for n in range(clen) :
    
         # 2. Append a set amount of zeros to get the next byte of the cookie into the first block. To get the first cookie byte, the message would be equal to  "0000000" and the device will add ";cookie=" and 1 byte of the cookie to the first block
         msg_str = "0" * (7-n)
@@ -191,21 +199,61 @@ def find_cookie(device):
                 cookie_str[n] = i
                 break
 
-    for m in range(clen // 16) :
+
+
+    return bytes(cookie_str)
+
+
+def caseB(last_blk, device, clen, cookie_str) :
+
+    # split clen into 8 + 16n + rmdr
+    num_full_blk = (clen+8)//16 
+    num_rmdr = clen - num_full_blk*16 - 8
+    
+    # first blk has cookie, so exactly 8 bytes of cookie
+    for n in range(8) :
+        # 2. Append a set amount of zeros to get the next byte of the cookie into the first block. To get the first cookie byte, the message would be equal to  "0000000" and the device will add ";cookie=" and 1 byte of the cookie to the first block
+        msg_str = "0" * (7-n)
+        msg = msg_str.encode()
+        # 3. I would then input the message into the device. The result will be the AES encryption of 0000000;cookie=n ^ last_blk with n being the first byte of the cookie. I will save this last_blk to a separate variable, last_blk0
+        out = device(msg)
+        bout = bytearray(out) # bout = 0000000;cookie=n ^ last_blk
+        correct = bout[0:16]
+        # print(correct)
+        last_blk0 = last_blk
+        last_blk = bout[-16:]
+        for i in range(256) :
+            msg_str = "0" * (7-n) + ";cookie=" 
+            msg = msg_str.encode() +  bytes(cookie_str[:n]) + bytes([i])
+            # print(len(msg))
+            # print(len(msg))
+            # print((msg))
+            blk_factor =  bytes(a ^ b for a, b in zip(last_blk, last_blk0))
+            input = bytes(a ^ b for a, b in zip(blk_factor, msg))
+            out = device(input)
+            bout = bytearray(out)
+            last_blk = bout[-16:]
+            # print(bout[0:16])
+        # 5. If I compare the results of step 3 and step 4, I can determine the first cookie byte.
+            if(bout[0:16] == correct) :
+                print("here")
+                print(i)
+                cookie_str[n] = i
+                break
+    
+    for m in range(num_full_blk) :
         for n in range(16) :
-            # 2. Append a set amount of zeros to get the next byte of the cookie into the first block. To get the first cookie byte, the message would be equal to  "0000000" and the device will add ";cookie=" and 1 byte of the cookie to the first block
-            msg_str = "0" * (7-n) + "0" * 16 * m
+            msg_str = "0" * (8 + 16*m + (16-n))
             msg = msg_str.encode()
             # 3. I would then input the message into the device. The result will be the AES encryption of 0000000;cookie=n ^ last_blk with n being the first byte of the cookie. I will save this last_blk to a separate variable, last_blk0
             out = device(msg)
             bout = bytearray(out) # bout = 0000000;cookie=n ^ last_blk
-            correct = bout[0:16]
+            correct = bout[0:16*(m+1)]
             # print(correct)
             last_blk0 = last_blk
             last_blk = bout[-16:]
-
             for i in range(256) :
-                msg_str = "0" * (7-n) + ";cookie=" 
+                msg_str = "0" * (8 + 16*m + (16-n)) + ";cookie=" 
                 msg = msg_str.encode() +  bytes(cookie_str[:n]) + bytes([i])
                 # print(len(msg))
                 # print(len(msg))
@@ -222,9 +270,3 @@ def find_cookie(device):
                     print(i)
                     cookie_str[n] = i
                     break
-
-
-
-
-
-    return bytes(cookie_str)
