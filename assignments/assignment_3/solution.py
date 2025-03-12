@@ -36,10 +36,7 @@ def brute_force_dl(mod, gen, order, target):
     return 0
 
 def find_inverse (g, n):
-    for i in range(n) :
-        if (g*i) % n == 1:
-            return i
-    return pow(g,n-2,n) #TODO fix
+    return pow(g,-1,n) #TODO fix
 
 def baby_step_giant_step_dl(mod, gen, order, target):
     """Uses the baby step giant step algorithm to compute discrete log of
@@ -55,28 +52,22 @@ def baby_step_giant_step_dl(mod, gen, order, target):
         int: The discrete log of target with respect to gen.
     """
 
-    m = int(math.sqrt(order-1))
+    m = math.ceil((math.sqrt(order)))
 
-    table_o = np.zeros([m, 2], dtype=int)
+    table1 = [0] * m #TODO hash???
+    for j in range(m):
+        table1[j] = pow(gen, j, mod)
 
-    # Generate table
+    am = find_inverse(pow(gen, m), mod)
+
+    y = target
+
     for i in range(m) :
-        table_o[i][0] = i
-        table_o[i][1] = pow(gen,i,mod)
+        if y in table1:
+            index = table1.index(y)
+            return i*m + index
+        y = y * am % mod
 
-    # Sort table
-    sorted_table_o = table_o[table_o[:,1].argsort()]
-
-    gen_inverse = find_inverse(gen, mod)
-
-    for q in range(m) :
-        gqm = pow(gen_inverse,m*q,mod)
-        ygqm = target * pow(gen_inverse,m*q,mod)
-        index = np.searchsorted(sorted_table_o[:,1], ygqm)
-        if(index > -1) :
-            print(index)
-            r = sorted_table_o[index-1][0]
-            return q*m + r
 
     return 0
 
@@ -109,6 +100,16 @@ def crt(vals, mods):
 
     return sum % M
 
+# helper function for pohlig_hellman
+def gppo(mod, gen, p, e, target) :
+    x = 0
+    n = pow(p, e)
+    y = pow(gen, pow(p, e-1))
+    for k in range(e) :
+        hk = pow(pow(gen, -x0) * target, pow(p, e-1-k))
+        dk = baby_step_giant_step_dl(mod, gen, n, hk):
+        x = x + pow(p,k) * dk
+    return x
 
 def pohlig_hellman(mod, gen, factors, target):
     """Uses the Pohlig-Hellman algorithm to compute discrete log of target with
@@ -125,6 +126,21 @@ def pohlig_hellman(mod, gen, factors, target):
     Returns:
         int: The discrete log of target with respect to gen.
     """
+
+    r = len(factors)
+    n = 1
+    for i in range(1,r) :
+        pei = pow(factors[i][0], factors[i][1])
+        n = n*pei
+    
+    for i in range(1,r) :
+        pei = pow(factors[i][0], factors[i][1])
+        exp = n / pei
+        gi = pow(gen, exp)
+        hi = pow(target, exp)
+
+
+
     return 0
 
 
