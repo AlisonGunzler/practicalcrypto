@@ -11,6 +11,11 @@ Your final submission must contain the following functions:
 """
 
 
+import math
+
+import numpy as np
+
+
 def brute_force_dl(mod, gen, order, target):
     """Uses brute force to compute discrete log of target with respect to gen.
 
@@ -23,8 +28,18 @@ def brute_force_dl(mod, gen, order, target):
     Returns:
         int: The discrete log of target with respect to gen.
     """
+
+    for i in range(order) :
+        if(pow(gen,i,mod) == target) :
+            return i
+
     return 0
 
+def find_inverse (g, n):
+    for i in range(n) :
+        if (g*i) % n == 1:
+            return i
+    return pow(g,n-2,n) #TODO fix
 
 def baby_step_giant_step_dl(mod, gen, order, target):
     """Uses the baby step giant step algorithm to compute discrete log of
@@ -39,6 +54,30 @@ def baby_step_giant_step_dl(mod, gen, order, target):
     Returns:
         int: The discrete log of target with respect to gen.
     """
+
+    m = int(math.sqrt(order-1))
+
+    table_o = np.zeros([m, 2], dtype=int)
+
+    # Generate table
+    for i in range(m) :
+        table_o[i][0] = i
+        table_o[i][1] = pow(gen,i,mod)
+
+    # Sort table
+    sorted_table_o = table_o[table_o[:,1].argsort()]
+
+    gen_inverse = find_inverse(gen, mod)
+
+    for q in range(m) :
+        gqm = pow(gen_inverse,m*q,mod)
+        ygqm = target * pow(gen_inverse,m*q,mod)
+        index = np.searchsorted(sorted_table_o[:,1], ygqm)
+        if(index > -1) :
+            print(index)
+            r = sorted_table_o[index-1][0]
+            return q*m + r
+
     return 0
 
 
@@ -53,7 +92,22 @@ def crt(vals, mods):
     Returns:
         int: An integer z such that for every i in {0, .., len(vals) - 1}, z ≡ vals[i] mod mods[i].
     """
-    return 0
+
+    M = math.prod(mods)
+    n = len(mods)
+    
+
+    sum = 0
+    for i in range(n) :
+        mi = mods[i]
+        bi = int(M / mi)
+        bi_inv = find_inverse(bi, mi)
+        ai = vals[i]
+
+        sum += (ai*bi*bi_inv) 
+
+
+    return sum % M
 
 
 def pohlig_hellman(mod, gen, factors, target):
