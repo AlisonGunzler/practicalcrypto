@@ -106,7 +106,7 @@ def gppo(mod, gen, p, e, target) :
     n = pow(p, e)
     y = pow(gen, pow(p, e-1))
     for k in range(e) :
-        hk = pow(pow(gen, -x) * target, pow(p, e-1-k))
+        hk = pow(pow(gen, -x, mod) * target, pow(p, e-1-k), mod)
         dk = baby_step_giant_step_dl(mod, gen, n, hk)
         x = x + pow(p,k) * dk
     return x
@@ -129,25 +129,25 @@ def pohlig_hellman(mod, gen, factors, target):
 
     r = len(factors)
     n = 1
-    for i in range(1,r) :
+    for i in range(r) :
         pei = pow(factors[i][0], factors[i][1])
         n = n*pei
     
     x_lst = list()
     pei_lst = list()
-    for i in range(1,r) :
+    for i in range(r) :
         pei = pow(factors[i][0], factors[i][1])
-        exp = n / pei
+        exp = n // pei
         gi = pow(gen, exp)
         hi = pow(target, exp)
-        xi = gppo(mod, gen, factors[i][0], factors[i][1], target)
+        xi = gppo(mod, gi, factors[i][0], factors[i][1], hi)
         x_lst.append(xi)
         pei_lst.append(pow(factors[i][0], factors[i][1]))
 
-    crt(x_lst, pei_lst)
+    x = crt(x_lst, pei_lst)
     
 
-    return 0
+    return x
 
 
 def elgamal_attack(params, pk):
