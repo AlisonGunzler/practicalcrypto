@@ -106,8 +106,8 @@ def gppo(mod, gen, p, e, target) :
     n = pow(p, e)
     y = pow(gen, pow(p, e-1))
     for k in range(e) :
-        hk = pow(pow(gen, -x0) * target, pow(p, e-1-k))
-        dk = baby_step_giant_step_dl(mod, gen, n, hk):
+        hk = pow(pow(gen, -x) * target, pow(p, e-1-k))
+        dk = baby_step_giant_step_dl(mod, gen, n, hk)
         x = x + pow(p,k) * dk
     return x
 
@@ -133,13 +133,19 @@ def pohlig_hellman(mod, gen, factors, target):
         pei = pow(factors[i][0], factors[i][1])
         n = n*pei
     
+    x_lst = list()
+    pei_lst = list()
     for i in range(1,r) :
         pei = pow(factors[i][0], factors[i][1])
         exp = n / pei
         gi = pow(gen, exp)
         hi = pow(target, exp)
+        xi = gppo(mod, gen, factors[i][0], factors[i][1], target)
+        x_lst.append(xi)
+        pei_lst.append(pow(factors[i][0], factors[i][1]))
 
-
+    crt(x_lst, pei_lst)
+    
 
     return 0
 
