@@ -103,15 +103,25 @@ def crt(vals, mods):
     return m_sum % M
 
 # helper function for pohlig_hellman
-def gppo(mod, gen, p, e, target) :
+def gppo(mod, gen, p,e, pei, target) :
+    #n=pei
     x = 0
-    n = pow(p, e)
-    y = pow(gen, pow(p, e-1), mod)
-    for k in range(e) :
-        hk = pow(pow(gen, -x, mod) * target, pow(p, e-1-k), mod)
-        dk = baby_step_giant_step_dl(mod, gen, n, hk)
+    y = pow(gen, pei/p, mod)
+
+    for k in range(e-1) :
+
+        gk = pow(gen, -x, mod)
+        gkh = gk * target
+        # p ^ e-1-k = p^e / p^k * p
+        exp = pei / pow(p, k+1)
+        hk = pow(gkh, exp, mod)
+        dk = baby_step_giant_step_dl(mod, gen, pei, hk)
+
         x = x + pow(p,k) * dk
+    
     return x
+
+
 
 def pohlig_hellman(mod, gen, factors, target):
     """Uses the Pohlig-Hellman algorithm to compute discrete log of target with
@@ -132,29 +142,32 @@ def pohlig_hellman(mod, gen, factors, target):
     #finding order
     r = len(factors)
     n = 1
+    pei_list = list()
     for i in range(r) :
         pei = pow(factors[i][0], factors[i][1])
         n = n*pei
+        pei_list.append(pei)
+        
+    vals = list()
+    mods = list()
 
-    x_lst = list()
-    pei_lst = list()
-    for i in range(r) :
-        pei = pow(factors[i][0], factors[i][1])
-        exp = n // pei
-        gi = pow(gen, exp, mod)
-        hi = pow(target, exp, mod)
-        xi = gppo(mod, gi, factors[i][0], factors[i][1], hi)
-        x_lst.append(xi)
-        pei_lst.append(pow(factors[i][0], factors[i][1]))
+    for j in range(r) :
 
-    x = crt(x_lst, pei_lst)
-    
+        pei = pei_list[j]
+        p = factors[j][0]
+        e = factors[j][1]
 
-    # using bs/gs to do discrete logs
-    
+        gi = pow(gen, n/pei, mod)
+        hi = pow(target, n/pei, mod)
+        xi = gppo(mod, gen, p, e, pei, target)
+        vals.append(xi)
+        mods.append(pei)
 
-    # return x
-    return 0
+    x = crt(vals, mods)
+
+
+   
+    return x
 
 
 def elgamal_attack(params, pk):
