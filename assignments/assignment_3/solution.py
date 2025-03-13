@@ -13,7 +13,7 @@ Your final submission must contain the following functions:
 
 import math
 
-import numpy as np
+# import numpy as np
 
 
 def brute_force_dl(mod, gen, order, target):
@@ -54,17 +54,19 @@ def baby_step_giant_step_dl(mod, gen, order, target):
 
     m = math.ceil((math.sqrt(order)))
 
-    table1 = [0] * m #TODO hash???
+    lookup = {} #TODO hash???
+    acc = 1
     for j in range(m):
-        table1[j] = pow(gen, j, mod)
+        lookup[acc] = j
+        acc = (acc * gen) % mod 
 
-    am = find_inverse(pow(gen, m), mod)
+    am = find_inverse(pow(gen, m, mod), mod)
 
     y = target
 
     for i in range(m) :
-        if y in table1:
-            index = table1.index(y)
+        if y in lookup:
+            index = lookup[y]
             return i*m + index
         y = y * am % mod
 
@@ -88,23 +90,23 @@ def crt(vals, mods):
     n = len(mods)
     
 
-    sum = 0
+    m_sum = 0
     for i in range(n) :
         mi = mods[i]
-        bi = int(M / mi)
+        bi = (M // mi)
         bi_inv = find_inverse(bi, mi)
         ai = vals[i]
 
-        sum += (ai*bi*bi_inv) 
+        m_sum += (ai*bi*bi_inv) 
 
 
-    return sum % M
+    return m_sum % M
 
 # helper function for pohlig_hellman
 def gppo(mod, gen, p, e, target) :
     x = 0
     n = pow(p, e)
-    y = pow(gen, pow(p, e-1))
+    y = pow(gen, pow(p, e-1), mod)
     for k in range(e) :
         hk = pow(pow(gen, -x, mod) * target, pow(p, e-1-k), mod)
         dk = baby_step_giant_step_dl(mod, gen, n, hk)
@@ -127,19 +129,20 @@ def pohlig_hellman(mod, gen, factors, target):
         int: The discrete log of target with respect to gen.
     """
 
+    #finding order
     r = len(factors)
     n = 1
     for i in range(r) :
         pei = pow(factors[i][0], factors[i][1])
         n = n*pei
-    
+
     x_lst = list()
     pei_lst = list()
     for i in range(r) :
         pei = pow(factors[i][0], factors[i][1])
         exp = n // pei
-        gi = pow(gen, exp)
-        hi = pow(target, exp)
+        gi = pow(gen, exp, mod)
+        hi = pow(target, exp, mod)
         xi = gppo(mod, gi, factors[i][0], factors[i][1], hi)
         x_lst.append(xi)
         pei_lst.append(pow(factors[i][0], factors[i][1]))
@@ -147,7 +150,11 @@ def pohlig_hellman(mod, gen, factors, target):
     x = crt(x_lst, pei_lst)
     
 
-    return x
+    # using bs/gs to do discrete logs
+    
+
+    # return x
+    return 0
 
 
 def elgamal_attack(params, pk):
