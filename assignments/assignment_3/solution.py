@@ -108,13 +108,13 @@ def gppo(mod, gen, p,e, pei, target) :
     x = 0
     y = pow(gen, pei//p, mod)
 
-    for k in range(e-1) :
+    for k in range(e) :
 
         gk = pow(gen, -x, mod)
         gkh = (gk * target) % mod
         exp = pow(p, e-1-k)
         hk = pow(gkh, exp, mod)
-        dk = baby_step_giant_step_dl(mod, gen, pei, hk)
+        dk = baby_step_giant_step_dl(mod, y, pei, hk)
 
         x = x + pow(p,k) * dk
     
