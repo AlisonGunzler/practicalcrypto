@@ -106,14 +106,13 @@ def crt(vals, mods):
 def gppo(mod, gen, p,e, pei, target) :
     #n=pei
     x = 0
-    y = pow(gen, pei/p, mod)
+    y = pow(gen, pei//p, mod)
 
     for k in range(e-1) :
 
         gk = pow(gen, -x, mod)
-        gkh = gk * target
-        # p ^ e-1-k = p^e / p^k * p
-        exp = pei / pow(p, k+1)
+        gkh = (gk * target) % mod
+        exp = pow(p, e-1-k)
         hk = pow(gkh, exp, mod)
         dk = baby_step_giant_step_dl(mod, gen, pei, hk)
 
@@ -157,9 +156,9 @@ def pohlig_hellman(mod, gen, factors, target):
         p = factors[j][0]
         e = factors[j][1]
 
-        gi = pow(gen, n/pei, mod)
-        hi = pow(target, n/pei, mod)
-        xi = gppo(mod, gen, p, e, pei, target)
+        gi = pow(gen, n//pei, mod)
+        hi = pow(target, n//pei, mod)
+        xi = gppo(mod, gi, p, e, pei, hi)
         vals.append(xi)
         mods.append(pei)
 
