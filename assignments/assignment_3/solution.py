@@ -52,7 +52,7 @@ def baby_step_giant_step_dl(mod, gen, order, target):
         int: The discrete log of target with respect to gen.
     """
 
-    m = math.ceil((math.sqrt(order)))
+    m = math.isqrt(order) + 1  
 
     lookup = {} #TODO hash???
     acc = 1
@@ -60,7 +60,8 @@ def baby_step_giant_step_dl(mod, gen, order, target):
         lookup[acc] = j
         acc = (acc * gen) % mod 
 
-    am = find_inverse(pow(gen, m, mod), mod)
+    # am = find_inverse(pow(gen, m, mod), mod)
+    am = pow(pow(gen, m, mod), -1, mod)
 
     y = target
 
@@ -68,7 +69,7 @@ def baby_step_giant_step_dl(mod, gen, order, target):
         if y in lookup:
             index = lookup[y]
             return i*m + index
-        y = y * am % mod
+        y = (y * am) % mod
 
 
     return 0
@@ -108,15 +109,16 @@ def gppo(mod, gen, p,e, pei, target) :
     x = 0
     y = pow(gen, pei//p, mod)
 
+    exp = pow(p, e - 1)  
     for k in range(e) :
 
-        gk = pow(gen, -x, mod)
+        gk = pow(pow(gen, x, mod), -1, mod)
         gkh = (gk * target) % mod
-        exp = pow(p, e-1-k)
         hk = pow(gkh, exp, mod)
         dk = baby_step_giant_step_dl(mod, y, pei, hk)
 
         x = x + pow(p,k) * dk
+        exp //= p  
     
     return x
 
