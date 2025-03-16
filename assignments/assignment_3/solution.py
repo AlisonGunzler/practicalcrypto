@@ -54,11 +54,11 @@ def baby_step_giant_step_dl(mod, gen, order, target):
 
     m = math.isqrt(order) + 1  
 
-    lookup = {} #TODO hash???
-    acc = 1
+    table0 = {} #TODO hash???
+    ct = 1
     for j in range(m):
-        lookup[acc] = j
-        acc = (acc * gen) % mod 
+        table0[ct] = j
+        ct = (ct * gen) % mod 
 
     # am = find_inverse(pow(gen, m, mod), mod)
     am = pow(pow(gen, m, mod), -1, mod)
@@ -66,8 +66,8 @@ def baby_step_giant_step_dl(mod, gen, order, target):
     y = target
 
     for i in range(m) :
-        if y in lookup:
-            index = lookup[y]
+        if y in table0:
+            index = table0[y]
             return i*m + index
         y = (y * am) % mod
 
@@ -185,4 +185,63 @@ def elgamal_attack(params, pk):
     Returns:
         int: The discrete log of pk with respect to gen.
     """
-    return 0
+
+    mod = params.mod
+    factors = params.factors
+    gen = params.gen
+    exp_bound = params.exp_bound
+
+    r = len(factors)
+    n = 1
+
+    for i in range(r) :
+        pei = pow(factors[i][0], factors[i][1])
+        n = n*pei
+
+    
+    smalls = list()
+    sum_under_100 = 1
+    factors.sort()
+
+    for f in factors:
+
+        base, exp = f
+        factor_value = pow(base, exp)
+        sum_under_100 *= factor_value
+        smalls.append(f) 
+
+        if  (sum_under_100 >= exp_bound):
+            break  
+        
+
+    cofac = n // sum_under_100
+    new_gen = pow(gen, cofac, mod)
+    new_target = pow(pk, cofac, mod)
+
+    
+    return pohlig_hellman(mod, new_gen, smalls, new_target)
+
+    
+
+
+
+    
+
+
+
+
+    #pk=B, sk=a, A=gen, A^a = B, find A
+    # return pohlig_hellman(mod, gen, factors, pk)
+
+
+
+
+
+
+
+
+
+
+
+
+    # return 0
