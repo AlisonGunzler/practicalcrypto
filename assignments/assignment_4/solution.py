@@ -1,5 +1,14 @@
-from tinyec.registry import get_curve
+import os
 import hashlib
+from datetime import datetime
+import json
+from tinyec.registry import get_curve
+from Crypto.Cipher import AES
+from dissononce.processing.impl.symmetricstate import SymmetricState
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.cipher.chachapoly import ChaChaPolyCipher
+from dissononce.dh.x25519.x25519 import X25519DH, PrivateKey
+from dissononce.hash.sha512 import SHA512Hash
 """
 Solution to Assignment 4
 
@@ -87,5 +96,53 @@ def modify_user_storage(params, target_data):
 
     Returns: No return value.
     """
-    sk = compute_ecdsa_sk(params)
+
+    sk = compute_ecdsa_sk(params) #server sk 
+    message_buffer = bytearray()
+    symmetricstate = SymmetricState(CipherState(ChaChaPolyCipher()), SHA512Hash())
+    dh = X25519DH()
+
+    static_server_sk = PrivateKey(sk.to_bytes(16, "big") + b"0" * 16)
+
+    client_static_pk = params.client_static_pk
+    server_static_pk = params.server_static_pk 
+    get_client_handshake_message = params.get_client_handshake_message
+    check_update = params.check_update
+    update_storage = params.update_storage
+
+    kp = dh.generate_keypair(static_server_sk)
+    symmetricstate.initialize_symmetric("Noise_K_25519_ChaChaPoly_SHA256".encode())
+    #initializing
+    prologue = b""
+    symmetricstate.mix_hash(prologue)
+    symmetricstate.mix_hash(kp.public.data)
+    symmetricstate.mix_hash(client_static_pk.data)
+
+    # hm = get_client_handshake_message()
+    #e = cepk
+    # e = dh.create_public(hm[: dh.dhlen])
+    e = dh.generate_keypair()
+    message_buffer.extend(e.public.data)
+    symmetricstate.mix_hash(e.public.data)
+
+    # print(type(e))
+    # print(type(kp))
+    # print(type(dh.dh(keypair = kp, publickey= e)))
+
+    #es
+    #es: (ecpk^ssk)
+    symmetricstate.mix_key(dh.dh(keypair = kp, publickey= e.public))
+
+    #ss
+    #ss: (cpk^ssk)
+    symmetricstate.mix_key(dh.dh(keypair = kp, publickey= client_static_pk))
+
+    message_buffer.extend(symmetricstate.encrypt_and_hash(target_data))
+
+    update_storage(message_buffer)
+
     pass
+
+
+#C client: es: (ecpk^ssk)
+# ss: (cpk^ssk)
